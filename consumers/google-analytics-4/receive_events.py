@@ -28,7 +28,7 @@ def callback(ch, method, properties, body):
 
     # TODO: Different fields here?
     headers = {
-        "Content-Type": "application/json; charset=utf-8",
+        "Content-Type": "application/json",
         "Accept": "*/*",
     }
 

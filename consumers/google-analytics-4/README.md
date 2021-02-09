@@ -31,3 +31,7 @@ In a terminal: ./build.sh
 - The event parameters should now be displayed in the same panel.
 5. Click on the "message" parameter.
 - You should be able to see "Hello World!" as the value for the message parameter.
+
+### 5. To-dos
+1. More fully work out way to send full event JSON and configure event parameters, user_properties,etc.
+2. Add user_properties
