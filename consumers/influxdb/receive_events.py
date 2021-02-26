@@ -10,7 +10,9 @@ influxHost = 'localhost'
 influxPort = 8086
 databaseName = 'eventsink'
 
-# Connect to MongoDB
+# TODO: Credentials are needed in InfluxDB 2+
+
+# Connect to InfluxDB
 client = InfluxDBClient(host=influxHost, port=influxPort)
 
 # Check if we need to create the database
@@ -56,7 +58,8 @@ channel = connection.channel()
 
 # Declare an exchange and a durable queue for our event fanout
 channel.exchange_declare(exchange=exchangeName,
-                         exchange_type='fanout')
+                         exchange_type='fanout',
+                         durable=True)
 channel.queue_declare(queue=queueName, durable=True)
 channel.queue_bind(exchange=exchangeName, queue=queueName)
 
