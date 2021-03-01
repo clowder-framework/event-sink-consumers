@@ -21,7 +21,8 @@ channel = connection.channel()
 
 # Declare an exchange and a durable queue for our event fanout
 channel.exchange_declare(exchange=exchangeName,
-                         exchange_type='fanout')
+                         exchange_type='fanout',
+                         durable=True)
 channel.queue_declare(queue=queueName, durable=True)
 channel.queue_bind(exchange=exchangeName, queue=queueName)
 
