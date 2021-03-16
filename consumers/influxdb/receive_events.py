@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import pika
 import time
+import json
 from influxdb import InfluxDBClient
 
 # TODO: Read from ENV
@@ -9,6 +10,7 @@ exchangeName = 'clowder.metrics'
 influxHost = 'localhost'
 influxPort = 8086
 databaseName = 'eventsink'
+measurementName = 'events'
 
 # TODO: Credentials are needed in InfluxDB 2+
 
@@ -31,22 +33,49 @@ client.switch_database(databaseName)
 def callback(ch, method, properties, body):
     print(" [x] Received %r" % body.decode())
 
-    millis = int(round(time.time() * 1000))
-    message = { "created": millis, "message": body.decode() }
+    event = json.loads(body.decode())
 
-    # TODO: Different measurements here?
-    data_points = [{
-        "measurement": "events",
-        "tags": {
-            "user": "User",
-            "resourceId": "6c89f539-71c6-490d-a28d-6c5d84c0ee2f"
-        },
-        "time": message['created'],
-        "fields": {
-            "message": message['message']
-        }
-    }] 
-    client.write_points(data_points)
+    tags = {}
+    fields = {}
+
+    # Parse tags first (tags are indexed, cardinality must be < 100K)
+    if ('type' in event):
+        tags['type'] = event['type']
+    if ('category' in event):
+        tags['category'] = event['category']
+    if ('service_name' in event):
+        tags['service_name'] = event['service_name']
+    if ('user_id' in event):
+        tags['user_id'] = event['user_id']
+    if ('author_id' in event):
+        tags['author_id'] = event['author_id']
+    if ('extractor_name' in event):
+        tags['extractor_name'] = event['extractor_name']
+
+    # Parse the rest as fields (fields are not indexed)
+    if ('resource_id' in event):
+        fields['resource_id'] = event['resource_id']
+    if ('dataset_id' in event):
+        fields['dataset_id'] = event['dataset_id']
+    if ('dataset_name' in event):
+        fields['dataset_name'] = event['dataset_name']
+    if ('author_name' in event):
+        fields['author_name'] = event['author_name']
+    if ('user_name' in event):
+        fields['user_name'] = event['user_name']
+    if ('resource_name' in event):
+        fields['resource_name'] = event['resource_name']
+    if ('size' in event):
+        fields['size'] = event['size']
+
+    # Write event as a data point in InfluxDB
+    data_point = {
+        "measurement": measurementName,
+        "tags": tags,
+        "time": event['created'],
+        "fields": fields
+    }
+    client.write_points([data_point])
 
     print(" [x] Done writing to InfluxDB" )
     ch.basic_ack(delivery_tag = method.delivery_tag)
