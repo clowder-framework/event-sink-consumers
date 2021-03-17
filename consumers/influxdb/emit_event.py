@@ -11,7 +11,7 @@ connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 try:
     channel = connection.channel()
 
-    channel.exchange_declare(exchange=exchangeName, exchange_type='fanout')
+    channel.exchange_declare(exchange=exchangeName, exchange_type='fanout', durable=True)
 
     channel.basic_publish(exchange=exchangeName, routing_key='', body=message,
                       properties=pika.BasicProperties(
