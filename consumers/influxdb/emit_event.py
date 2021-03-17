@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import pika
 import sys
+import time
 
 # TODO: Read from ENV
 queueName = 'event.sink'
 exchangeName = 'clowder.metrics'
 
-message = ' '.join(sys.argv[1:]) or "Hello World!"
+millis = int(round(time.time() * 1000))
+message = ' '.join(sys.argv[1:]) or '{"created":%s,"category":"service_status","type":"up","service_name":"clowder"}' % (millis)
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 try:
     channel = connection.channel()
