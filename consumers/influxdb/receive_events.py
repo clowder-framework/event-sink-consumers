@@ -33,7 +33,7 @@ client.switch_database(databaseName)
 def callback(ch, method, properties, body):
     print(" [x] Received %r" % body.decode())
 
-    event = json.loads(body.decode())
+    event = json.loads(body.decode()) 
 
     tags = {}
     fields = {}
@@ -43,8 +43,6 @@ def callback(ch, method, properties, body):
         tags['type'] = event['type']
     if ('category' in event):
         tags['category'] = event['category']
-    if ('service_name' in event):
-        tags['service_name'] = event['service_name']
     if ('user_id' in event):
         tags['user_id'] = event['user_id']
     if ('author_id' in event):
@@ -57,6 +55,8 @@ def callback(ch, method, properties, body):
         fields['resource_id'] = event['resource_id']
     if ('dataset_id' in event):
         fields['dataset_id'] = event['dataset_id']
+    if ('service_name' in event):
+        fields['service_name'] = event['service_name']
     if ('dataset_name' in event):
         fields['dataset_name'] = event['dataset_name']
     if ('author_name' in event):
