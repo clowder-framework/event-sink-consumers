@@ -46,15 +46,35 @@ jobs:
             FOLDER: consumers/amplitude
           - name: google-analytics
             FOLDER: consumers/google-analytics-4
+
     steps:
       - uses: actions/checkout@v2
+
+      - name: get release info
+        id: release_info
+        run: |
+          version="$(awk '/^## / { print $2} ' CHANGELOG.md | head -1)"
+          changelog="$(sed -e "1,/^## ${version}/d" -e "/^## /,\$d" -e '/^$/d' CHANGELOG.md)"
+          changelog="${changelog//'%'/'%25'}"
+          changelog="${changelog//$'\n'/'%0A'}"
+          changelog="${changelog//$'\r'/'%0D'}"
+          echo "::set-output name=version::$version"
+          echo "::set-output name=changelog::$changelog"
+          tags="latest"
+          oldversion=""
+          while [ "${oldversion}" != "${version}" ]; do
+            oldversion="${version}"
+            tags="${tags},${version}"
+            version=${version%.*}
+          done
+          echo "::set-output name=tags::$tags"
 
       # build the docker image, this will always run to make sure
       # the Dockerfile still works.
       - name: Build image
         uses: elgohr/Publish-Docker-Github-Action@2.22
         env:
-          VERSION: ${{ env.VERSION }}
+          VERSION: ${{ steps.release_info.outputs.version }}
           BUILDNUMBER: ${{ github.run_number }}
           GITSHA1: ${{ github.sha  }}
         with:
@@ -63,7 +83,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
+          tags: "${{ steps.release_info.outputs.tags }}"
           buildargs: VERSION,BUILDNUMBER,GITSHA1
           no_push: true
 
@@ -72,7 +92,7 @@ jobs:
         if: github.event_name == 'push' && github.repository == env.MASTER_REPO
         uses: elgohr/Publish-Docker-Github-Action@2.22
         env:
-          VERSION: ${{ env.VERSION }}
+          VERSION: ${{ steps.release_info.outputs.version }}
           BUILDNUMBER: ${{ github.run_number }}
           GITSHA1: ${{ github.sha  }}
         with:
@@ -81,7 +101,7 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_PASSWORD }}
           context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
+          tags: "${{ steps.release_info.outputs.tags }}"
           buildargs: VERSION,BUILDNUMBER,GITSHA1
 
       # this will publish to the clowder dockerhub repo
@@ -89,7 +109,7 @@ jobs:
         if: github.event_name == 'push' && github.repository == env.MASTER_REPO
         uses: elgohr/Publish-Docker-Github-Action@2.22
         env:
-          VERSION: ${{ env.VERSION }}
+          VERSION: ${{ steps.release_info.outputs.version }}
           BUILDNUMBER: ${{ github.run_number }}
           GITSHA1: ${{ github.sha  }}
         with:
@@ -97,7 +117,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
+          tags: "${{ steps.release_info.outputs.tags }}"
           buildargs: VERSION,BUILDNUMBER,GITSHA1
 
       # this will update the README of the dockerhub repo
@@ -118,3 +138,15 @@ jobs:
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           DOCKERHUB_REPOSITORY: ${{ env.DOCKERHUB_ORG }}/eventsink-${{ matrix.NAME }}
           README_FILEPATH: ${{ matrix.README }}
+
+      # mark the release on github
+      - name: create release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_info.outputs.version }}
+          release_name: Release ${{ steps.release_info.outputs.version }}
+          body: ${{ steps.release_info.outputs.changelog }}
+
