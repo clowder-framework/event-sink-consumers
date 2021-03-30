@@ -1,3 +1,8 @@
 **/data/*
 **/meta/*
 **/wal/*
+
+**/influxdb/*
+
+.env
+*.bolt
