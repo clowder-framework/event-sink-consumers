@@ -10,8 +10,6 @@ RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@rabbitmq/%2F')
 RABBITMQ_EXCHANGENAME = os.getenv('RABBITMQ_EXCHANGENAME', 'clowder.metrics')
 RABBITMQ_QUEUENAME = os.getenv('RABBITMQ_QUEUENAME', 'event.sink')
 
-print('Using RabbitMQ: ' + str(RABBITMQ_URI))
-
 # InfluxDB connection parameters
 INFLUXDB_HOST = os.getenv('INFLUXDB_HOST', 'localhost')
 INFLUXDB_PORT = os.getenv('INFLUXDB_PORT', 8086)
