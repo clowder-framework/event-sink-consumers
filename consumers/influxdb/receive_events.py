@@ -17,7 +17,7 @@ INFLUXDB_PORT = os.getenv('INFLUXDB_PORT', 8086)
 INFLUXDB_USER = os.getenv('INFLUXDB_USER', '')
 INFLUXDB_PASSWORD = os.getenv('INFLUXDB_PASSWORD', '')
 
-INFLUXDB_DATABASE = os.getenv('INFLUXDB_DATABASE', 'clowder')
+INFLUXDB_DATABASE = os.getenv('INFLUXDB_DATABASE', 'eventsink')
 INFLUXDB_MEASUREMENT = os.getenv('INFLUXDB_MEASUREMENT', 'events')
 
 # Connect to InfluxDB
