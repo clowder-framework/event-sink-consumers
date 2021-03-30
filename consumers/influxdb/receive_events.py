@@ -15,27 +15,18 @@ print('Using RabbitMQ: ' + str(RABBITMQ_URI))
 # InfluxDB connection parameters
 INFLUXDB_HOST = os.getenv('INFLUXDB_HOST', 'localhost')
 INFLUXDB_PORT = os.getenv('INFLUXDB_PORT', 8086)
+
 INFLUXDB_USER = os.getenv('INFLUXDB_USER', '')
 INFLUXDB_PASSWORD = os.getenv('INFLUXDB_PASSWORD', '')
 
-INFLUXDB_DATABASE = os.getenv('INFLUXDB_DB', 'clowder')
+INFLUXDB_DATABASE = os.getenv('INFLUXDB_DATABASE', 'clowder')
 INFLUXDB_MEASUREMENT = os.getenv('INFLUXDB_MEASUREMENT', 'events')
-
-print('Using InfluxDB: ' + str('****:****@' + INFLUXDB_HOST + ':' + INFLUXDB_PORT + '/' + INFLUXDB_DATABASE + '/' + INFLUXDB_MEASUREMENT))
 
 # Connect to InfluxDB
 client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, username=INFLUXDB_USER, password=INFLUXDB_PASSWORD, database=INFLUXDB_DATABASE)
 
 # Check if we need to create the database
-createDB = True
-databases = client.get_list_database()
-for db in databases:
-    if db['name'] == INFLUXDB_DATABASE:
-        createDB = False
-
-if createDB:
-    client.create_database(INFLUXDB_DATABASE)
-
+client.create_database(INFLUXDB_DATABASE)
 client.switch_database(INFLUXDB_DATABASE)
 
 # Define what work to do with each message
