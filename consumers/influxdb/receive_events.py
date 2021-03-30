@@ -45,6 +45,8 @@ def callback(ch, method, properties, body):
         tags['category'] = event['category']
     if ('user_id' in event):
         tags['user_id'] = event['user_id']
+    if ('healthy' in event):
+        tags['healthy'] = event['healthy']
     if ('author_id' in event):
         tags['author_id'] = event['author_id']
     if ('extractor_name' in event):
@@ -53,6 +55,16 @@ def callback(ch, method, properties, body):
     # Parse the rest as fields (fields are not indexed)
     if ('resource_id' in event):
         fields['resource_id'] = event['resource_id']
+    if ('response_time_avg' in event):
+        fields['response_time_avg'] = event['response_time_avg']
+    if ('response_time_min' in event):
+        fields['response_time_min'] = event['response_time_min']
+    if ('response_time_max' in event):
+        fields['response_time_max'] = event['response_time_max']
+    if ('response_time_loss' in event):
+        fields['response_time_loss'] = event['response_time_loss']
+    if ('uptime' in event):
+        fields['uptime'] = event['uptime']
     if ('dataset_id' in event):
         fields['dataset_id'] = event['dataset_id']
     if ('service_name' in event):
