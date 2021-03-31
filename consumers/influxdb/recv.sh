@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run --net=host -it --rm event-worker:influxdb
+docker run -it --net=host --rm --env-file .env event-worker:influxdb

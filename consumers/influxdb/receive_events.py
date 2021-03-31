@@ -1,33 +1,31 @@
 #!/usr/bin/env python
+import os
 import pika
 import time
 import json
 from influxdb import InfluxDBClient
 
-# TODO: Read from ENV
-queueName = 'event.sink'
-exchangeName = 'clowder.metrics'
-influxHost = 'localhost'
-influxPort = 8086
-databaseName = 'eventsink'
-measurementName = 'events'
+# RabbitMQ connection parameters
+RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@rabbitmq/%2F')
+RABBITMQ_EXCHANGENAME = os.getenv('RABBITMQ_EXCHANGENAME', 'clowder.metrics')
+RABBITMQ_QUEUENAME = os.getenv('RABBITMQ_QUEUENAME', 'event.sink')
 
-# TODO: Credentials are needed in InfluxDB 2+
+# InfluxDB connection parameters
+INFLUXDB_HOST = os.getenv('INFLUXDB_HOST', 'localhost')
+INFLUXDB_PORT = os.getenv('INFLUXDB_PORT', 8086)
+
+INFLUXDB_USER = os.getenv('INFLUXDB_USER', '')
+INFLUXDB_PASSWORD = os.getenv('INFLUXDB_PASSWORD', '')
+
+INFLUXDB_DATABASE = os.getenv('INFLUXDB_DATABASE', 'eventsink')
+INFLUXDB_MEASUREMENT = os.getenv('INFLUXDB_MEASUREMENT', 'events')
 
 # Connect to InfluxDB
-client = InfluxDBClient(host=influxHost, port=influxPort)
+client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, username=INFLUXDB_USER, password=INFLUXDB_PASSWORD, database=INFLUXDB_DATABASE)
 
 # Check if we need to create the database
-createDB = True
-databases = client.get_list_database()
-for db in databases:
-    if db['name'] == databaseName:
-        createDB = False
-
-if createDB:
-    client.create_database(databaseName)
-
-client.switch_database(databaseName)
+client.create_database(INFLUXDB_DATABASE)
+client.switch_database(INFLUXDB_DATABASE)
 
 # Define what work to do with each message
 def callback(ch, method, properties, body):
@@ -45,6 +43,8 @@ def callback(ch, method, properties, body):
         tags['category'] = event['category']
     if ('user_id' in event):
         tags['user_id'] = event['user_id']
+    if ('healthy' in event):
+        tags['healthy'] = event['healthy']
     if ('author_id' in event):
         tags['author_id'] = event['author_id']
     if ('extractor_name' in event):
@@ -53,6 +53,16 @@ def callback(ch, method, properties, body):
     # Parse the rest as fields (fields are not indexed)
     if ('resource_id' in event):
         fields['resource_id'] = event['resource_id']
+    if ('response_time_avg' in event):
+        fields['response_time_avg'] = event['response_time_avg']
+    if ('response_time_min' in event):
+        fields['response_time_min'] = event['response_time_min']
+    if ('response_time_max' in event):
+        fields['response_time_max'] = event['response_time_max']
+    if ('response_time_loss' in event):
+        fields['response_time_loss'] = event['response_time_loss']
+    if ('uptime' in event):
+        fields['uptime'] = event['uptime']
     if ('dataset_id' in event):
         fields['dataset_id'] = event['dataset_id']
     if ('service_name' in event):
@@ -70,7 +80,7 @@ def callback(ch, method, properties, body):
 
     # Write event as a data point in InfluxDB
     data_point = {
-        "measurement": measurementName,
+        "measurement": INFLUXDB_MEASUREMENT,
         "tags": tags,
         "time": event['created'],
         "fields": fields
@@ -82,19 +92,19 @@ def callback(ch, method, properties, body):
 
 
 # Connect to RabbitMQ
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URI))
 channel = connection.channel()
 
 # Declare an exchange and a durable queue for our event fanout
-channel.exchange_declare(exchange=exchangeName,
+channel.exchange_declare(exchange=RABBITMQ_EXCHANGENAME,
                          exchange_type='fanout',
                          durable=True)
-channel.queue_declare(queue=queueName, durable=True)
-channel.queue_bind(exchange=exchangeName, queue=queueName)
+channel.queue_declare(queue=RABBITMQ_QUEUENAME, durable=True)
+channel.queue_bind(exchange=RABBITMQ_EXCHANGENAME, queue=RABBITMQ_QUEUENAME)
 
 # Only fetch/work on one message at a time
 channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue=queueName,
+channel.basic_consume(queue=RABBITMQ_QUEUENAME,
                       on_message_callback=callback)
 
 
