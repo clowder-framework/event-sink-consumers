@@ -9,6 +9,7 @@ from influxdb import InfluxDBClient
 
 name = 'InfluxDBConsumer'
 logger = logging.getLogger(name)
+#logger.setLevel(logging.DEBUG)
 
 # RabbitMQ connection parameters
 RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@rabbitmq/%2F')
@@ -88,7 +89,7 @@ def callback(ch, method, properties, body):
     time_precision = None
     if isinstance(created_timestamp, str):
         # Assume this is a date in ~ISO format, convert to millis
-        created_datetime = dateutil.parser.isoparse('2008-09-03T20:56:35.450686Z')
+        created_datetime = dateutil.parser.isoparse(created_timestamp)
         epoch = datetime.datetime.utcfromtimestamp(0)
         time = (created_datetime - epoch).total_seconds() * 1000.0
         time_precision = 'ms'
