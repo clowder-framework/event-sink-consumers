@@ -3,7 +3,12 @@ import os
 import pika
 import time
 import json
+import logging
+import dateutil.parser
 from influxdb import InfluxDBClient
+
+name = 'InfluxDBConsumer'
+logger = logging.getLogger(name)
 
 # RabbitMQ connection parameters
 RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@rabbitmq/%2F')
@@ -29,7 +34,7 @@ client.switch_database(INFLUXDB_DATABASE)
 
 # Define what work to do with each message
 def callback(ch, method, properties, body):
-    print(" [x] Received %r" % body.decode())
+    logger.debug(" [x] Received %r" % body.decode())
 
     event = json.loads(body.decode()) 
 
@@ -78,16 +83,41 @@ def callback(ch, method, properties, body):
     if ('size' in event):
         fields['size'] = event['size']
 
+    # Parse timestamp, if necessary
+    created_timestamp = event['created']
+    time_precision = None
+    if isintance(created_timestamp, str):
+        # Assume this is a date in ~ISO format, convert to millis
+        created_datetime = dateutil.parser.isoparse('2008-09-03T20:56:35.450686Z')
+        epoch = datetime.datetime.utcfromtimestamp(0)
+        time = (created_datetime - epoch).total_seconds() * 1000.0
+        time_precision = 'ms'
+    elif isinstance(created_timestamp, int):
+        time = created_timestamp
+
+        # Use # digits to determine precision
+        digit_count = len(str(created_timestamp))
+        if digit_count <= 11:
+            # epoch timestamp has ~10 digits - assume that it is given in "seconds"
+            time_precision = 's'
+        elif digit_count <= 14 && digit_count >= 12:
+            time_precision = 'ms'
+        elif digit_count <= 17 && digit_count >= 15:
+            time_precision = 'u'
+    else:
+        logger.error('Unrecognized timestamp format: ' + str(created_timestamp)))
+        
+
     # Write event as a data point in InfluxDB
     data_point = {
         "measurement": INFLUXDB_MEASUREMENT,
         "tags": tags,
-        "time": event['created'],
+        "time": time,
         "fields": fields
     }
-    client.write_points([data_point])
+    client.write_points([data_point], time_precision=time_precision)
 
-    print(" [x] Done writing to InfluxDB" )
+    logger.debug(" [x] Done writing to InfluxDB" )
     ch.basic_ack(delivery_tag = method.delivery_tag)
 
 
@@ -109,7 +139,7 @@ channel.basic_consume(queue=RABBITMQ_QUEUENAME,
 
 
 # Wait for messages
-print(' [*] Waiting for messages. To exit press CTRL+C')
+logger.debug(' [*] Waiting for messages. To exit press CTRL+C')
 channel.start_consuming()
 
 
@@ -118,7 +148,7 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('Interrupted, cleaning up... Press Ctrl+C again to exit immediately.')
+        logger.error('Interrupted, cleaning up... Press Ctrl+C again to exit immediately.')
         try:
             sys.exit(0)
         except SystemExit:
