@@ -86,7 +86,7 @@ def callback(ch, method, properties, body):
     # Parse timestamp, if necessary
     created_timestamp = event['created']
     time_precision = None
-    if isintance(created_timestamp, str):
+    if isinstance(created_timestamp, str):
         # Assume this is a date in ~ISO format, convert to millis
         created_datetime = dateutil.parser.isoparse('2008-09-03T20:56:35.450686Z')
         epoch = datetime.datetime.utcfromtimestamp(0)
@@ -100,12 +100,12 @@ def callback(ch, method, properties, body):
         if digit_count <= 11:
             # epoch timestamp has ~10 digits - assume that it is given in "seconds"
             time_precision = 's'
-        elif digit_count <= 14 && digit_count >= 12:
+        elif digit_count <= 14 and digit_count >= 12:
             time_precision = 'ms'
-        elif digit_count <= 17 && digit_count >= 15:
+        elif digit_count <= 17 and digit_count >= 15:
             time_precision = 'u'
     else:
-        logger.error('Unrecognized timestamp format: ' + str(created_timestamp)))
+        logger.error('Unrecognized timestamp format: ' + str(created_timestamp))
         
 
     # Write event as a data point in InfluxDB
